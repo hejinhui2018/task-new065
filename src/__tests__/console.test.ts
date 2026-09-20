@@ -23,9 +23,23 @@ function feed(state: ConsoleState, events: SubtitleEvent[]): ConsoleState {
   return events.reduce((s, e) => consoleReducer(s, ingest(e)), state)
 }
 
-/** 按场景脚本的逻辑时间完整跑一遍 */
+/** 按场景脚本的逻辑时间完整跑一遍（含批次边界，由播放器在真实链路中投递；
+ * 此处只投递事件，批次事件携带 batchId 后会进入待复核缓冲） */
 function runScenario(): ConsoleState {
   return SCENARIO.reduce(
+    (s, item) =>
+      consoleReducer(s, {
+        type: 'ingest',
+        event: item.batch ? { ...item.event, batchId: item.batch } : item.event,
+        receivedAt: item.at,
+      }),
+    createInitialState(),
+  )
+}
+
+/** 只跑直播段（补发批次之前的 5 条） */
+function runLiveSegment(): ConsoleState {
+  return SCENARIO.filter((item) => !item.batch).slice(0, 5).reduce(
     (s, item) => consoleReducer(s, { type: 'ingest', event: item.event, receivedAt: item.at }),
     createInitialState(),
   )
@@ -180,8 +194,8 @@ describe('无残留重放', () => {
     expect(runA).toEqual(runB)
   })
 
-  it('完整场景端到端：补齐、去重、修订各发生一次，终态正确', () => {
-    const s = runScenario()
+  it('直播段端到端：补齐、去重、修订各发生一次，终态正确', () => {
+    const s = runLiveSegment()
 
     expect(sortedSegments(s).map((seg) => seg.seq)).toEqual([101, 102, 103])
     expect(gaps(s)).toEqual([])

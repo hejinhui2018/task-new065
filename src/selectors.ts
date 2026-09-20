@@ -1,4 +1,5 @@
 import type { ConsoleState, SubtitleSegment } from './types'
+import { batchView, type BatchView } from './batch'
 
 /** 派生数据选择器：全部由状态计算，不额外存储，保证 reset 后无残留。 */
 
@@ -58,4 +59,15 @@ export function lockedCount(state: ConsoleState): number {
 
 export function duplicateCount(state: ConsoleState): number {
   return state.log.filter((entry) => entry.kind === 'duplicate').length
+}
+
+/** 当前待复核批次的视图（开放收集阶段不展示复核界面） */
+export function currentBatchView(state: ConsoleState): BatchView | null {
+  if (!state.currentBatch || state.currentBatch.phase === 'open') return null
+  return batchView(state.currentBatch, state)
+}
+
+/** 是否存在收集完毕、等待运营处理的批次 */
+export function hasPendingBatch(state: ConsoleState): boolean {
+  return state.currentBatch?.phase === 'pending'
 }

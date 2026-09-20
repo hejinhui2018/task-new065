@@ -156,10 +156,21 @@ export class Player {
   private deliver(): void {
     const item = this.scenario[this.cursor]
     if (!item) return
-    this.dispatch({ type: 'ingest', event: item.event, receivedAt: item.at })
+    // 进入一个补发组：先投递批次开始边界（播放器只按数据分组，不自行发明批次）
+    if (item.batch && this.scenario[this.cursor - 1]?.batch !== item.batch) {
+      this.dispatch({ type: 'batch-begin', id: item.batch, at: item.at })
+    }
+    // 组内事件打上 batchId，reducer 据此把事件路由进批次缓冲
+    const event = item.batch ? { ...item.event, batchId: item.batch } : item.event
+    this.dispatch({ type: 'ingest', event, receivedAt: item.at })
     this.delivered += 1
     this.cursor += 1
     const next = this.scenario[this.cursor]
+    // 离开补发组：投递结束边界；若批次已在复核中（组外又有同组晚到事件），
+    // reducer 会幂等忽略这次迟到的 end。
+    if (item.batch && next?.batch !== item.batch) {
+      this.dispatch({ type: 'batch-end', id: item.batch, at: item.at })
+    }
     if (next) {
       this.remainingLogicalMs = next.at - item.at
     } else {

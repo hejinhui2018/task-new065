@@ -59,12 +59,17 @@ describe('播放器', () => {
 
     expect(h.player.status).toBe('finished')
     expect(h.player.deliveredCount).toBe(SCENARIO.length)
-    expect(Object.keys(h.getState().segments).map(Number).sort()).toEqual([101, 102, 103])
-    // 全部 5 个事件按场景逻辑时间依次投递（含重复事件与修订）
+    // 批次中的新片段（#104/#105）缓冲待复核，不直接落时间线；
+    // 批次外常规流 #106 正常落位
+    expect(Object.keys(h.getState().segments).map(Number).sort()).toEqual([101, 102, 103, 106])
+    // 播放器在补发组前后各投递一次 begin/end（含晚到片段触发的重复 begin，由 reducer 幂等处理）
+    expect(h.actions.filter((a) => a.type === 'batch-begin')).toHaveLength(2)
+    expect(h.actions.filter((a) => a.type === 'batch-end')).toHaveLength(2)
+    // 全部事件按场景逻辑时间依次投递
     const ingestAts = h.actions
       .filter((a): a is Extract<ConsoleAction, { type: 'ingest' }> => a.type === 'ingest')
       .map((a) => a.receivedAt)
-    expect(ingestAts).toEqual([0, 1500, 3000, 4500, 10000])
+    expect(ingestAts).toEqual([0, 1500, 3000, 4500, 10000, 13000, 13000, 13000, 13000, 13000, 16000, 20000])
   })
 
   it('暂停结算剩余时间，倍速影响后续排程', () => {
@@ -95,11 +100,11 @@ describe('播放器', () => {
     // 下一条是重复的 #103（at=3000），距上一条（at=1500）间隔 1500ms
     expect(h.scheduledDelay()).toBe(1500)
 
-    h.fireTimer()
-    h.fireTimer()
-    h.fireTimer()
+    for (let i = 0; i < SCENARIO.length - 2; i += 1) {
+      h.fireTimer()
+    }
     expect(h.player.status).toBe('finished')
-    expect(h.player.deliveredCount).toBe(5)
+    expect(h.player.deliveredCount).toBe(SCENARIO.length)
   })
 
   it('重放：先重置到干净状态，再从头投递，两轮结果一致', () => {
