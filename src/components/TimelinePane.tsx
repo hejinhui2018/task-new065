@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { ConsoleAction } from '../consoleReducer'
-import type { ConsoleState, SubtitleSegment } from '../types'
+import type { BatchItem, ConsoleState, SubtitleSegment } from '../types'
 import { seqRange } from '../selectors'
 
 interface TimelinePaneProps {
@@ -24,12 +24,14 @@ export function TimelinePane({ state, onAirSeq, dispatch }: TimelinePaneProps) {
           {rows.map((seq) => {
             const seg = state.segments[seq]
             if (!seg) return <GapRow key={seq} seq={seq} />
+            const batchItem = state.activeBatch?.items.find((item) => item.seq === seq)
             return (
               <SegmentRow
                 key={seq}
                 seg={seg}
                 isOnAir={seq === onAirSeq}
                 hasConflict={state.conflicts.some((c) => c.seq === seq)}
+                batchItem={batchItem}
                 dispatch={dispatch}
               />
             )
@@ -55,10 +57,19 @@ interface SegmentRowProps {
   seg: SubtitleSegment
   isOnAir: boolean
   hasConflict: boolean
+  batchItem?: BatchItem
   dispatch: (action: ConsoleAction) => void
 }
 
-function SegmentRow({ seg, isOnAir, hasConflict, dispatch }: SegmentRowProps) {
+const BATCH_CHIP: Record<BatchItem['kind'], string> = {
+  added: '📦 批次·新增',
+  revised: '📦 批次·改写',
+  conflict: '📦 批次·锁定排除',
+  unchanged: '📦 批次·无变化',
+  stale: '📦 批次·过期',
+}
+
+function SegmentRow({ seg, isOnAir, hasConflict, batchItem, dispatch }: SegmentRowProps) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(seg.text)
 
@@ -73,6 +84,7 @@ function SegmentRow({ seg, isOnAir, hasConflict, dispatch }: SegmentRowProps) {
     isOnAir ? 'seg-row--onair' : '',
     seg.locked ? 'seg-row--locked' : '',
     hasConflict ? 'seg-row--conflict' : '',
+    batchItem?.selected ? 'seg-row--batch-selected' : '',
   ]
     .filter(Boolean)
     .join(' ')
@@ -88,6 +100,14 @@ function SegmentRow({ seg, isOnAir, hasConflict, dispatch }: SegmentRowProps) {
         {isOnAir && <span className="chip chip--live">▶ 播出中</span>}
         {seg.locked && <span className="chip chip--locked">🔒 已锁定</span>}
         {hasConflict && <span className="chip chip--danger">⚠️ 冲突待裁决</span>}
+        {batchItem && (
+          <span
+            className={`chip ${batchItem.selected ? 'chip--batch-on' : 'chip--batch'}`}
+            title={batchItem.locked ? '锁定片段默认排除，需在批次面板解锁后才能接受' : '存在于当前复核批次'}
+          >
+            {BATCH_CHIP[batchItem.kind]}
+          </span>
+        )}
         <span className="row-actions">
           {!editing && (
             <button

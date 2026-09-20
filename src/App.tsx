@@ -14,6 +14,8 @@ import { PreviewPane } from './components/PreviewPane'
 import { TimelinePane } from './components/TimelinePane'
 import { EventLogPane } from './components/EventLogPane'
 import { ConflictPanel } from './components/ConflictPanel'
+import { BatchReviewPanel } from './components/BatchReviewPanel'
+import { HistoryControls } from './components/HistoryControls'
 import { PlaybackControls } from './components/PlaybackControls'
 
 export default function App() {
@@ -28,7 +30,12 @@ export default function App() {
         conflictCount={state.conflicts.length}
         lockedCount={lockedCount(state)}
       />
+      <div className="action-bar">
+        <HistoryControls state={state} dispatch={dispatch} />
+        {state.activeBatch && <span className="batch-live-chip">📦 批次复核进行中</span>}
+      </div>
       <ConflictPanel state={state} dispatch={dispatch} />
+      <BatchReviewPanel state={state} dispatch={dispatch} />
       <main className="grid">
         <PreviewPane
           onAir={onAirSegment(state)}

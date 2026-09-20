@@ -1,4 +1,5 @@
-import type { ConsoleState, SubtitleSegment } from './types'
+import type { BatchItem, ConsoleState, ReviewBatch, SubtitleSegment } from './types'
+import { isSelectableItem, summarizeItems } from './batch'
 
 /** 派生数据选择器：全部由状态计算，不额外存储，保证 reset 后无残留。 */
 
@@ -58,4 +59,36 @@ export function lockedCount(state: ConsoleState): number {
 
 export function duplicateCount(state: ConsoleState): number {
   return state.log.filter((entry) => entry.kind === 'duplicate').length
+}
+
+/** 可勾选条目（新增/改写且未锁定），按时间线顺序 */
+export function selectableItems(batch: ReviewBatch): BatchItem[] {
+  return batch.items.filter(isSelectableItem)
+}
+
+export type BatchSummary = ReturnType<typeof summarizeItems>
+
+/** 批次分类计数 + 全选状态，供复核面板标题与按钮使用 */
+export function batchSummary(batch: ReviewBatch): BatchSummary & { allSelected: boolean } {
+  const summary = summarizeItems(batch.items)
+  return { ...summary, allSelected: summary.selectable > 0 && summary.selected === summary.selectable }
+}
+
+export function canUndo(state: ConsoleState): boolean {
+  return state.past.length > 0
+}
+
+export function canRedo(state: ConsoleState): boolean {
+  return state.future.length > 0
+}
+
+/** 最近一次可撤销动作的描述（用于按钮提示） */
+export function undoLabel(state: ConsoleState): string | null {
+  const last = state.past[state.past.length - 1]
+  return last ? last.label : null
+}
+
+export function redoLabel(state: ConsoleState): string | null {
+  const last = state.future[state.future.length - 1]
+  return last ? last.label : null
 }

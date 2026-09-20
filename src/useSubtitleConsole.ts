@@ -1,11 +1,16 @@
 import { useEffect, useReducer, useRef } from 'react'
-import { consoleReducer, createInitialState } from './consoleReducer'
+import { consoleReducer } from './consoleReducer'
 import { Player } from './player'
 import { SCENARIO } from './scenario'
+import { loadState, saveState } from './storage'
 
 /** 把纯函数 reducer 与播放器装配成 React 可用的整体。 */
 export function useSubtitleConsole() {
-  const [state, dispatch] = useReducer(consoleReducer, undefined, createInitialState)
+  const [state, dispatch] = useReducer(consoleReducer, undefined, () => {
+    // 刷新恢复：优先使用上次的本地状态；无存档时回到干净初始态
+    const restored = loadState()
+    return restored
+  })
   const playerRef = useRef<Player | null>(null)
   if (playerRef.current === null) {
     playerRef.current = new Player(SCENARIO, dispatch)
@@ -20,6 +25,11 @@ export function useSubtitleConsole() {
       player.dispose()
     }
   }, [])
+
+  // 任意状态变化后写回本地，保证刷新后时间线 / 事件流 / 批次复核进度一致
+  useEffect(() => {
+    saveState(state)
+  }, [state])
 
   return { state, dispatch, player: playerRef.current }
 }

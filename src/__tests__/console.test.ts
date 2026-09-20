@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { consoleReducer, createInitialState, type ConsoleAction } from '../consoleReducer'
+import { isScheduledBatch } from '../player'
 import { SCENARIO } from '../scenario'
 import { gaps, onAirSeq, sortedSegments } from '../selectors'
-import type { ConsoleState, SubtitleEvent } from '../types'
+import type { ConsoleState, ScheduledEvent, SubtitleEvent } from '../types'
 
 /** 构造一条机器事件 */
 function ev(
@@ -23,9 +24,14 @@ function feed(state: ConsoleState, events: SubtitleEvent[]): ConsoleState {
   return events.reduce((s, e) => consoleReducer(s, ingest(e)), state)
 }
 
-/** 按场景脚本的逻辑时间完整跑一遍 */
+/** 直播阶段的单事件条目（不含赛后补发批次及其后的复核期间更新） */
+const LIVE_ITEMS: ScheduledEvent[] = SCENARIO.filter(
+  (item): item is ScheduledEvent => !isScheduledBatch(item) && item.at <= 10000,
+)
+
+/** 按场景脚本的逻辑时间完整跑一遍直播阶段 */
 function runScenario(): ConsoleState {
-  return SCENARIO.reduce(
+  return LIVE_ITEMS.reduce(
     (s, item) => consoleReducer(s, { type: 'ingest', event: item.event, receivedAt: item.at }),
     createInitialState(),
   )
@@ -160,12 +166,12 @@ describe('无残留重放', () => {
   it('reset 后状态与全新初始状态完全一致', () => {
     // 先制造一轮“脏”状态：片段、缺口、去重记录、人工修改、锁定、冲突、日志
     let s = createInitialState()
-    for (const item of SCENARIO.slice(0, 4)) {
+    for (const item of LIVE_ITEMS.slice(0, 4)) {
       s = consoleReducer(s, { type: 'ingest', event: item.event, receivedAt: item.at })
     }
     s = consoleReducer(s, { type: 'edit', seq: 102, text: '人工版本' })
     s = consoleReducer(s, { type: 'toggle-lock', seq: 102 })
-    s = consoleReducer(s, { type: 'ingest', event: SCENARIO[4].event, receivedAt: SCENARIO[4].at })
+    s = consoleReducer(s, { type: 'ingest', event: LIVE_ITEMS[4].event, receivedAt: LIVE_ITEMS[4].at })
     expect(s.conflicts).toHaveLength(1)
     s = consoleReducer(s, { type: 'resolve-conflict', seq: 102, choice: 'keep' })
     expect(s.log.length).toBeGreaterThan(0)

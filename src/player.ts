@@ -1,5 +1,12 @@
 import type { ConsoleAction } from './consoleReducer'
-import type { ScheduledEvent } from './types'
+import type { ScheduledBatch, ScheduledEvent } from './types'
+
+/** 场景条目：单条机器事件，或一次整批补发 */
+export type ScheduledItem = ScheduledEvent | ScheduledBatch
+
+export function isScheduledBatch(item: ScheduledItem): item is ScheduledBatch {
+  return 'batchId' in item
+}
 
 /**
  * 场景播放器：按逻辑时间表把事件投递进 reducer。
@@ -31,7 +38,7 @@ export class Player {
   private listeners = new Set<() => void>()
 
   constructor(
-    private readonly scenario: ScheduledEvent[],
+    private readonly scenario: ScheduledItem[],
     private readonly dispatch: (action: ConsoleAction) => void,
     private readonly scheduler: Scheduler = defaultScheduler,
     private readonly now: Clock = () => Date.now(),
@@ -53,8 +60,14 @@ export class Player {
     return this.scenario.length
   }
 
-  get nextEvent(): ScheduledEvent | null {
+  get nextItem(): ScheduledItem | null {
     return this.scenario[this.cursor] ?? null
+  }
+
+  /** 下一条为单事件时返回它；批次补发返回 null（用 nextItem 判断） */
+  get nextEvent(): ScheduledEvent | null {
+    const item = this.scenario[this.cursor]
+    return item && !isScheduledBatch(item) ? item : null
   }
 
   subscribe(listener: () => void): () => void {
@@ -156,7 +169,18 @@ export class Player {
   private deliver(): void {
     const item = this.scenario[this.cursor]
     if (!item) return
-    this.dispatch({ type: 'ingest', event: item.event, receivedAt: item.at })
+    if (isScheduledBatch(item)) {
+      // 整批补发：一次性交给复核台，由状态机负责去重与分类
+      this.dispatch({
+        type: 'batch-open',
+        id: item.batchId,
+        label: item.label,
+        events: item.events,
+        at: item.at,
+      })
+    } else {
+      this.dispatch({ type: 'ingest', event: item.event, receivedAt: item.at })
+    }
     this.delivered += 1
     this.cursor += 1
     const next = this.scenario[this.cursor]

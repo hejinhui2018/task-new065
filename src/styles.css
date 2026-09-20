@@ -607,6 +607,275 @@ body {
   color: var(--accent);
 }
 
+/* ===== 操作条（撤销/重做 + 批次状态） ===== */
+
+.action-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 4px 2px;
+}
+
+.history-controls {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.btn--undo,
+.btn--redo {
+  border-color: var(--manual);
+  color: var(--manual);
+}
+
+.batch-live-chip {
+  font-size: 12.5px;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 2px 12px;
+}
+
+/* ===== 批次复核面板 ===== */
+
+.batch-panel {
+  border: 2px solid var(--accent);
+  border-radius: 10px;
+  background: rgba(88, 166, 255, 0.07);
+  padding: 12px 16px;
+}
+
+.batch-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.batch-head h2 {
+  margin: 0;
+  font-size: 15px;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.batch-counts {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+
+.bcount {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 10px;
+  background: var(--panel);
+}
+
+.bcount--added {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+
+.bcount--revised {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.bcount--conflict {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.bcount--unchanged {
+  color: var(--muted);
+}
+
+.bcount--stale {
+  color: var(--warn);
+  border-color: var(--warn);
+}
+
+.batch-stale {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border: 1px solid var(--warn);
+  background: rgba(210, 153, 34, 0.1);
+  border-radius: 8px;
+  padding: 9px 12px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  color: var(--warn);
+}
+
+.batch-stale button {
+  margin-left: 10px;
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+.batch-toolbar {
+  margin-bottom: 8px;
+}
+
+.select-all {
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+
+.batch-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.batch-item {
+  display: flex;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 9px 12px;
+}
+
+.batch-item.item--selected {
+  border-color: var(--ok);
+  box-shadow: inset 3px 0 0 var(--ok);
+}
+
+.batch-item-check {
+  padding-top: 3px;
+}
+
+.batch-item-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+  font-size: 12.5px;
+}
+
+.bkind {
+  font-weight: 700;
+}
+
+.item--added .bkind {
+  color: var(--ok);
+}
+
+.item--revised .bkind {
+  color: var(--accent);
+}
+
+.item--conflict .bkind {
+  color: var(--danger);
+}
+
+.item--unchanged .bkind,
+.item--stale .bkind {
+  color: var(--muted);
+}
+
+.batch-diff {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.diff-col {
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 6px 10px;
+  background: var(--panel-deep);
+}
+
+.diff-col h4 {
+  margin: 0 0 3px;
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.diff-col p {
+  margin: 0;
+  font-size: 13.5px;
+}
+
+.diff-col--current {
+  border-left: 3px solid var(--manual);
+}
+
+.diff-col--incoming {
+  border-left: 3px solid var(--accent);
+}
+
+.diff-arrow {
+  align-self: center;
+  color: var(--muted);
+}
+
+.batch-item-note {
+  margin-top: 7px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  color: var(--warn);
+}
+
+.btn--unlock {
+  border-color: var(--manual);
+  color: var(--manual);
+}
+
+.btn--recalc {
+  white-space: nowrap;
+}
+
+.btn--close {
+  border-color: var(--border);
+  color: var(--muted);
+}
+
+.batch-actions {
+  margin-top: 11px;
+  display: flex;
+  gap: 10px;
+}
+
+/* 时间线上的批次标记 */
+.chip--batch {
+  border-color: var(--border);
+  color: var(--muted);
+}
+
+.chip--batch-on {
+  border-color: var(--ok);
+  color: var(--ok);
+}
+
+.seg-row--batch-selected {
+  box-shadow: inset 3px 0 0 var(--ok);
+}
+
+.log--batch {
+  border-left-color: var(--accent);
+}
+
 /* ===== 播放控制条 ===== */
 
 .controls {

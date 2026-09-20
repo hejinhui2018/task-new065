@@ -1,4 +1,5 @@
 import type { Player, PlayerStatus } from '../player'
+import { isScheduledBatch } from '../player'
 import { SCENARIO_HINT } from '../scenario'
 
 const SPEEDS = [0.5, 1, 2, 4]
@@ -13,7 +14,7 @@ const STATUS_LABEL: Record<PlayerStatus, string> = {
 /** 播放控制条：播放 / 暂停 / 单步 / 倍速 / 重放 + 进度与场景提示。 */
 export function PlaybackControls({ player }: { player: Player }) {
   const status = player.status
-  const next = player.nextEvent
+  const next = player.nextItem
   const progress = player.totalCount === 0 ? 0 : player.deliveredCount / player.totalCount
 
   return (
@@ -76,8 +77,10 @@ export function PlaybackControls({ player }: { player: Player }) {
           </div>
           {next && status !== 'finished' && (
             <span className="next">
-              下一事件：+{(next.at / 1000).toFixed(1)}s · #{next.event.seq}{' '}
-              {next.event.kind === 'revision' ? `修订 v${next.event.version}` : '新字幕'}
+              下一事件：+{(next.at / 1000).toFixed(1)}s ·{' '}
+              {isScheduledBatch(next)
+                ? `📦 补发批次（${next.events.length} 条）`
+                : `#${next.event.seq}${next.event.kind === 'revision' ? ` 修订 v${next.event.version}` : ' 新字幕'}`}
             </span>
           )}
         </div>
